@@ -1,0 +1,65 @@
+{
+  "name": "@graysonlang/cdp-gpu-probe",
+  "version": "1.0.0",
+  "description": "Report GPU info (WebGL/WebGPU textures and buffers) for a page over the Chrome DevTools Protocol.",
+  "homepage": "https://github.com/graysonlang/cdp-gpu-probe#readme",
+  "bugs": {
+    "url": "https://github.com/graysonlang/cdp-gpu-probe/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/graysonlang/cdp-gpu-probe.git"
+  },
+  "license": "MIT",
+  "author": "Grayson Lang",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.mjs",
+    "./direct": "./hud/direct.js",
+    "./package.json": "./package.json"
+  },
+  "main": "./src/index.mjs",
+  "bin": {
+    "cdp-gpu-probe": "bin/cdp-gpu-probe.mjs",
+    "cdp-gpu-hud": "bin/cdp-gpu-hud.mjs"
+  },
+  "files": [
+    "bin",
+    "src",
+    "hud",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "node ./scripts/build.mjs --lint --minify",
+    "serve": "node ./scripts/build.mjs --lint --sourcemap --watch --serve --debug-port=9222",
+
+    "dev": "npm run serve -- --proxy --launch --chrome-arg=--remote-allow-origins=http://127.0.0.1:9292",
+    "dev:gpu:hud": "npm run dev & npm run gpu:hud",
+
+    "vscode:build": "npm run build -- --vscode",
+    "vscode:debug": "npm run serve -- --vscode",
+
+    "gpu:hud": "node bin/cdp-gpu-hud.mjs --attach=9222",
+
+    "probe": "node bin/cdp-gpu-probe.mjs --url=http://127.0.0.1:8000/",
+    "probe:watch": "node bin/cdp-gpu-probe.mjs --url=http://127.0.0.1:8000/ --samples=12 --interval=1000 --top=10",
+    "probe:hud": "node bin/cdp-gpu-probe.mjs hud --attach=9222 --top=10",
+    "probe:hud:launch": "node bin/cdp-gpu-probe.mjs hud --url=http://127.0.0.1:8000/ --top=10",
+
+    "test": "node test/parse.test.mjs && node test/lifecycle.test.mjs",
+
+    "lint": "eslint . --ignore-pattern 'dist'"
+  },
+  "devDependencies": {
+    "@graysonlang/esp": "^1.5.0",
+    "@stylistic/eslint-plugin": "^5.10.0",
+    "esbuild": "^0.28.0",
+    "eslint": "^9.39.4"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

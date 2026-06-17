@@ -1,0 +1,34 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug in Chrome",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:8000",
+      "port": 9222,
+      "runtimeArgs": ["--remote-allow-origins=http://127.0.0.1:9292"],
+      "webRoot": "${workspaceFolder}",
+      "preLaunchTask": "debug",
+      "postDebugTask": "Kill debug server",
+      "sourceMaps": true,
+      "outFiles": ["${workspaceFolder}/dist/main.js"]
+    },
+    {
+      "name": "GPU HUD (isolated)",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/bin/cdp-gpu-hud.mjs",
+      "args": ["--attach=9222"],
+      "console": "internalConsole",
+      "internalConsoleOptions": "neverOpen"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Debug + GPU HUD",
+      "configurations": ["Debug in Chrome", "GPU HUD (isolated)"],
+      "stopAll": true
+    }
+  ]
+}

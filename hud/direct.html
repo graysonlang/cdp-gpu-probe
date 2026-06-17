@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>cdp-gpu-probe HUD</title>
+  <style>
+    /* Page-level only; the HUD injects its own scoped styles (.cdp-gpu-hud). */
+    html, body { margin: 0; background: #0e1116; }
+    .cdp-gpu-hud { min-height: 100vh; }
+  </style>
+</head>
+<body>
+  <!-- Served by the `cdp-gpu-hud` bin as native ESM (no bundler): ./direct.js imports
+       ../src/*.mjs, all relative. startDirectHud reads ?discover= / ?ws= from the URL. -->
+  <script type="module">
+    import { startDirectHud } from './direct.js';
+    startDirectHud().catch((error) => {
+      document.body.replaceChildren();
+      const pre = document.createElement('pre');
+      pre.style.cssText = 'color:#ff7b72;font:13px ui-monospace,monospace;padding:20px;white-space:pre-wrap';
+      pre.textContent = `cdp-gpu-probe HUD failed to start:\n\n${error?.stack || error}`;
+      document.body.appendChild(pre);
+    });
+  </script>
+</body>
+</html>

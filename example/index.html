@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>gpu-probe scratch test</title>
+  <link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgo=" />
+  <style>
+    body {
+      background: #111;
+      color: #ccc;
+      font-family: system-ui, sans-serif;
+      margin: 32px;
+      display: flex;
+      gap: 24px;
+      align-items: flex-start;
+    }
+    h1 { font-size: 16px; margin: 0 0 12px; }
+    canvas { background: #000; border: 1px solid #333; image-rendering: pixelated; }
+    #panel { min-width: 320px; }
+    .group { margin-bottom: 16px; }
+    .group h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: #888; margin: 0 0 6px; }
+    button {
+      background: #2a2a2a; color: #ddd; border: 1px solid #444; border-radius: 4px;
+      padding: 6px 10px; margin: 0 6px 6px 0; cursor: pointer; font: inherit;
+    }
+    button:hover { background: #383838; }
+    button[aria-pressed="true"] { background: #3a5; color: #061; border-color: #3a5; }
+    pre {
+      background: #0a0a0a; border: 1px solid #333; border-radius: 4px;
+      padding: 10px; font-size: 12px; line-height: 1.5; white-space: pre-wrap; margin: 0;
+    }
+  </style>
+  <script src="./main.js" type="module"></script>
+</head>
+<body>
+  <canvas id="gl" width="384" height="384"></canvas>
+  <div id="panel">
+    <h1>gpu-probe scratch test</h1>
+
+    <div class="group">
+      <h2>Leak (WebGL + WebGPU)</h2>
+      <button id="leak" aria-pressed="false">Leak: off</button>
+      <button id="free-all">Free all</button>
+    </div>
+
+    <div class="group">
+      <h2>WebGL textures</h2>
+      <button id="webgl-add">+4 textures</button>
+      <button id="webgl-free">Free WebGL</button>
+    </div>
+
+    <div class="group">
+      <h2>WebGPU</h2>
+      <button id="webgpu-add">+4 textures + buffer</button>
+      <button id="webgpu-free">Free WebGPU</button>
+    </div>
+
+    <div class="group">
+      <h2>Allocations</h2>
+      <pre id="readout">initializing…</pre>
+    </div>
+  </div>
+</body>
+</html>
