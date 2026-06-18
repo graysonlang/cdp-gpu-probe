@@ -1,6 +1,6 @@
 {
   "name": "@graysonlang/cdp-gpu-probe",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Report GPU info (WebGL/WebGPU textures and buffers) for a page over the Chrome DevTools Protocol.",
   "homepage": "https://github.com/graysonlang/cdp-gpu-probe#readme",
   "bugs": {
@@ -32,23 +32,20 @@
   "scripts": {
     "build": "node ./scripts/build.mjs --lint --minify",
     "serve": "node ./scripts/build.mjs --lint --sourcemap --watch --serve --debug-port=9222",
-
     "dev": "npm run serve -- --proxy --launch --chrome-arg=--remote-allow-origins=http://127.0.0.1:9292",
     "dev:gpu:hud": "npm run dev & npm run gpu:hud",
-
     "vscode:build": "npm run build -- --vscode",
     "vscode:debug": "npm run serve -- --vscode",
-
     "gpu:hud": "node bin/cdp-gpu-hud.mjs --attach=9222",
-
     "probe": "node bin/cdp-gpu-probe.mjs --url=http://127.0.0.1:8000/",
     "probe:watch": "node bin/cdp-gpu-probe.mjs --url=http://127.0.0.1:8000/ --samples=12 --interval=1000 --top=10",
     "probe:hud": "node bin/cdp-gpu-probe.mjs hud --attach=9222 --top=10",
     "probe:hud:launch": "node bin/cdp-gpu-probe.mjs hud --url=http://127.0.0.1:8000/ --top=10",
-
     "test": "node test/parse.test.mjs && node test/lifecycle.test.mjs",
-
     "lint": "eslint . --ignore-pattern 'dist'"
+  },
+  "dependencies": {
+    "chrome-launcher": "^1.2.1"
   },
   "devDependencies": {
     "@graysonlang/esp": "^1.5.0",

@@ -19,7 +19,7 @@ import http from 'node:http';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { getBrowserWebSocketUrl, openInIsolatedChrome, parseDebugTarget } from '../src/index.mjs';
+import { getBrowserWebSocketUrl, launchAppChrome, openInIsolatedChrome, parseDebugTarget } from '../src/index.mjs';
 
 const PKG_ROOT = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
 const SERVE_DIRS = new Set(['hud', 'src']); // the direct HUD's native-ESM module graph
@@ -42,8 +42,13 @@ if (args.has('help')) {
 Opens the direct GPU HUD in an isolated Chrome window and serves it from this package.
 The app's Chrome must run with --remote-debugging-port and allow this HUD's origin, e.g.:
   chrome --remote-debugging-port=9222 --remote-allow-origins=http://127.0.0.1:9292
+Or skip that wiring entirely and let this launch the app's Chrome for you:
+  cdp-gpu-hud --launch-app=http://localhost:4200
 
   --attach=<port>   App's debug port (or host:port). Default 9222.
+  --launch-app=<url>  Also launch the app's Chrome at <url> on the attach port, with a
+                      persistent profile and the correct --remote-allow-origins set
+                      automatically (no hardcoded Chrome path or temp dir needed).
   --hud-port=<n>    Port this serves the HUD on. Default 9292.
   --text            Start with no charts ticked (lightest; tick rows to add charts).
   --footprint-interval=<ms>  Two-rate: fast footprint cadence (needs --detail-interval).
@@ -57,6 +62,7 @@ const { host, port: appPort } = parseDebugTarget(args.get('attach') || '9222');
 const hudPort = Number(args.get('hud-port') || 9292);
 const wantText = args.has('text');
 const chromeOverride = args.get('chrome') ? String(args.get('chrome')) : undefined;
+const launchAppUrl = typeof args.get('launch-app') === 'string' ? String(args.get('launch-app')) : undefined;
 
 const server = http.createServer(async (req, res) => {
   const urlPath = (req.url || '/').split('?')[0];
@@ -95,6 +101,18 @@ await new Promise((resolve, reject) => {
   server.listen(hudPort, '127.0.0.1', resolve);
 });
 
+// Optionally launch the app's Chrome ourselves, on the same port the HUD attaches to and
+// allowing this server's origin — so the two values that must agree can't drift. The HUD
+// auto-attaches via /ws once it answers, so launch order vs. the HUD window doesn't matter.
+const appWindow = launchAppUrl
+  ? launchAppChrome(launchAppUrl, {
+      chrome: chromeOverride,
+      port: appPort,
+      allowOrigin: `http://127.0.0.1:${hudPort}`,
+    })
+  : null;
+if (appWindow) process.stdout.write(`App Chrome launched → ${launchAppUrl} (debug port ${appPort})\n`);
+
 // The page defaults to discovering its ws via the same-origin /ws endpoint (below), so no
 // ?discover= is needed; it re-resolves there on disconnect for auto re-attach.
 const hudUrl = new URL(`http://127.0.0.1:${hudPort}/hud/direct.html`);
@@ -109,7 +127,9 @@ for (const flag of ['footprint-interval', 'detail-interval']) {
 const hudWindow = openInIsolatedChrome(hudUrl, { chrome: chromeOverride });
 
 process.stdout.write(`GPU HUD window opened (isolated Chrome) → ${hudUrl}\n`);
-process.stdout.write(`Allow it: start the app's Chrome with --remote-allow-origins=http://127.0.0.1:${hudPort}\n`);
+if (!appWindow) {
+  process.stdout.write(`Allow it: start the app's Chrome with --remote-allow-origins=http://127.0.0.1:${hudPort}\n`);
+}
 process.stdout.write(`Measuring Chrome @ ${host}:${appPort} — close the HUD window (or Ctrl-C) to stop.\n`);
 
 let shuttingDown = false;
@@ -118,6 +138,7 @@ async function shutdown(code = 0) {
   shuttingDown = true;
   await new Promise(resolve => server.close(resolve));
   await hudWindow.dispose(); // kills the isolated Chrome and reaps its profile
+  if (appWindow) await appWindow.dispose(); // kill the app Chrome we launched (profile persists)
   process.exit(code);
 }
 hudWindow.process.on('exit', () => shutdown(0)); // closing the HUD window stops the server

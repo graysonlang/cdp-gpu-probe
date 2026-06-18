@@ -289,6 +289,7 @@ export {
   listPageTargets,
   selectPageTarget,
   openInIsolatedChrome,
+  launchAppChrome,
   parseDebugTarget,
 } from './cdp.mjs';
 export { captureGpuMemory } from './memory-infra.mjs';

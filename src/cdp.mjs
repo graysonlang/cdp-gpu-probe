@@ -1,8 +1,9 @@
 // Minimal Chrome DevTools Protocol client and launcher.
 //
-// Intentionally dependency-free: it speaks CDP over the global WebSocket that
-// modern Node ships. Nothing in here is project specific, so it can be shared
-// across repos.
+// Speaks CDP over the global WebSocket that modern Node ships. The only
+// dependency is chrome-launcher, used purely to locate a Chrome binary across
+// macOS/Linux/Windows/WSL — the spawning and CDP wiring stay hand-rolled here.
+// Nothing in here is project specific, so it can be shared across repos.
 
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
@@ -10,6 +11,8 @@ import net from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
 import { rm } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { getChromePath } from 'chrome-launcher';
 import { sleep } from './util.mjs';
 
 export function getFreePort() {
@@ -23,27 +26,21 @@ export function getFreePort() {
   });
 }
 
-// Resolve a Chrome/Chromium binary. Honors an explicit override first, then a
-// couple of generic env vars, then the usual install locations on macOS and Linux.
+// Resolve a Chrome/Chromium binary. Honors an explicit override first, then our
+// own env var, then delegates to chrome-launcher's installation finder, which
+// covers macOS/Linux/Windows (registry + Program Files) and WSL and honors
+// CHROME_PATH itself.
 export function findChromePath(explicit) {
-  const candidates = [
-    explicit,
-    process.env.CDP_GPU_PROBE_CHROME,
-    process.env.CHROME_PATH,
-    '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-    '/Applications/Google Chrome Canary.app/Contents/MacOS/Google Chrome Canary',
-    '/Applications/Chromium.app/Contents/MacOS/Chromium',
-    '/usr/bin/google-chrome',
-    '/usr/bin/google-chrome-stable',
-    '/usr/bin/chromium',
-    '/usr/bin/chromium-browser',
-  ].filter(Boolean);
-
-  const chromePath = candidates.find(candidate => existsSync(candidate));
-  if (!chromePath) {
+  const override = explicit || process.env.CDP_GPU_PROBE_CHROME;
+  if (override) {
+    if (existsSync(override)) return override;
+    throw new Error(`Chrome not found at "${override}" (from --chrome / CDP_GPU_PROBE_CHROME).`);
+  }
+  try {
+    return getChromePath();
+  } catch {
     throw new Error('Could not find Chrome. Set CDP_GPU_PROBE_CHROME or pass --chrome=/path/to/chrome.');
   }
-  return chromePath;
 }
 
 async function fetchJson(url) {
@@ -247,6 +244,55 @@ export function openInIsolatedChrome(url, options = {}) {
     }
     await sleep(50);
     await rm(userDataDir, { force: true, recursive: true, maxRetries: 5, retryDelay: 100 }).catch(() => {});
+  }
+
+  return { process: child, userDataDir, dispose };
+}
+
+// Launch the APP's Chrome — the window being measured — with zero host wiring. Unlike
+// launchChrome (headless, ephemeral, free port: for the probe's own measurement instance)
+// and openInIsolatedChrome (the HUD's throwaway window), this is HEADED, listens on a
+// FIXED debug port, and (optionally) allows a HUD origin so a separate HUD can attach over
+// CDP. The profile is PERSISTENT and keyed by URL, so dev logins/state survive restarts;
+// it is deliberately left in place on dispose() (only the process is killed). This is the
+// one-call replacement for a hand-rolled `chrome --remote-debugging-port=... --user-data-dir=...`
+// launch line, so consumers don't hardcode a Chrome path or temp dir per OS.
+export function launchAppChrome(url, options = {}) {
+  const {
+    chrome: chromeOverride,
+    port = 9222,
+    allowOrigin,
+    userDataDir: userDataDirOverride,
+    extraArgs = [],
+  } = options;
+
+  const chromePath = findChromePath(chromeOverride);
+  // Hash the URL so distinct apps get distinct stable profiles without unwieldy dir names.
+  const profileKey = createHash('sha1').update(String(url)).digest('hex').slice(0, 12);
+  const userDataDir = userDataDirOverride
+    || path.join(os.tmpdir(), `cdp-gpu-app-${profileKey}`);
+  const chromeArgs = [
+    `--remote-debugging-port=${port}`,
+    `--user-data-dir=${userDataDir}`,
+    '--no-first-run',
+    '--no-default-browser-check',
+    ...(allowOrigin ? [`--remote-allow-origins=${allowOrigin}`] : []),
+    ...extraArgs,
+    String(url), // spawn args must be strings; callers may pass a URL object
+  ];
+  const child = spawn(chromePath, chromeArgs, { stdio: 'ignore' });
+  child.on('error', () => {}); // callers may add their own
+
+  let disposed = false;
+  async function dispose() {
+    if (disposed) return;
+    disposed = true;
+    try {
+      child.kill();
+    } catch {
+      // already gone
+    }
+    // Persistent profile is intentionally left in place across runs.
   }
 
   return { process: child, userDataDir, dispose };
