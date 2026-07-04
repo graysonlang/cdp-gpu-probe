@@ -18,7 +18,7 @@ npm run probe:watch    # 12 snapshots in a fresh headless Chrome
 npm run probe:hud      # or: live dashboard, attached to the dev Chrome you're clicking in
 ```
 
-The page has buttons to add/free WebGL and WebGPU resources and a **Leak** toggle. Loading `http://localhost:8000/?leak` auto-starts the leak so a headless probe run sees a climbing footprint with no clicks.
+The page has buttons to add/free WebGL and WebGPU resources and a **Leak** toggle. Appending `?leak` to the dev server URL auto-starts the leak so a headless probe run sees a climbing footprint with no clicks. The dev server port is derived per checkout — run `npm run ports` to see this one's, though the `probe` scripts work it out for themselves. The CDP debug port stays at the conventional `9222`.
 
 ## Install
 

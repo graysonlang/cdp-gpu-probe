@@ -1,0 +1,51 @@
+{
+  //! Source of truth for .vscode/launch.json — edit this file, not the generated one.
+  //!
+  //! The esbuild runner renders this template into .vscode/launch.json, substituting
+  //! {{http}} with the dev-server port derived for this checkout, and {{outdir}} with
+  //! the build's output directory (the `outdir` in scripts/build.mjs, i.e. www).
+  //! Ports come from the absolute path of scripts/build.mjs, so every clone and
+  //! worktree serves on its own port and two of them never collide.
+  //!
+  //! The CDP debug port is deliberately NOT templated. 9222 is the conventional
+  //! remote-debugging port, it is what this repo's own tooling attaches to
+  //! (`npm run gpu:hud`, `npm run probe:hud`, and the --attach examples in the
+  //! README), and it is pinned in the `serve` script with --debug-port=9222. A
+  //! per-checkout debug port would make every documented attach command wrong.
+  //!
+  //! Lines starting with //! are template-only notes and are stripped on render.
+  //! Rendered by `npm install` (prepare) and refreshed whenever the runner serves
+  //! or watches. Render it by hand with: npm run sync:launch
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug in Chrome",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:{{http}}",
+      "port": 9222,
+      "runtimeArgs": ["--remote-allow-origins=http://127.0.0.1:9292"],
+      "webRoot": "${workspaceFolder}",
+      "preLaunchTask": "debug",
+      "postDebugTask": "Kill debug server",
+      "sourceMaps": true,
+      "outFiles": ["${workspaceFolder}/{{outdir}}/main.js"]
+    },
+    {
+      "name": "GPU HUD (isolated)",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/bin/cdp-gpu-hud.mjs",
+      "args": ["--attach=9222"],
+      "console": "internalConsole",
+      "internalConsoleOptions": "neverOpen"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Debug + GPU HUD",
+      "configurations": ["Debug in Chrome", "GPU HUD (isolated)"],
+      "stopAll": true
+    }
+  ]
+}

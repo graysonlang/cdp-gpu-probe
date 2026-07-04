@@ -1,6 +1,12 @@
 import stylistic from '@stylistic/eslint-plugin';
 
 export default [
+  {
+    ignores: [
+      'dist/**',
+      'www/**',
+    ],
+  },
   stylistic.configs.customize({
     indent: 2,
     quotes: 'single',

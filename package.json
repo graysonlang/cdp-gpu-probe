@@ -1,6 +1,6 @@
 {
   "name": "@graysonlang/cdp-gpu-probe",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Report GPU info (WebGL/WebGPU textures and buffers) for a page over the Chrome DevTools Protocol.",
   "homepage": "https://github.com/graysonlang/cdp-gpu-probe#readme",
   "bugs": {
@@ -30,6 +30,9 @@
     "README.md"
   ],
   "scripts": {
+    "prepare": "node ./scripts/build.mjs --sync-launch || echo 'prepare: skipped launch.json sync (run npm run sync:launch)'",
+    "ports": "node ./scripts/build.mjs --print-port",
+    "sync:launch": "node ./scripts/build.mjs --sync-launch",
     "build": "node ./scripts/build.mjs --lint --minify",
     "serve": "node ./scripts/build.mjs --lint --sourcemap --watch --serve --debug-port=9222",
     "dev": "npm run serve -- --proxy --launch --chrome-arg=--remote-allow-origins=http://127.0.0.1:9292",
@@ -37,21 +40,21 @@
     "vscode:build": "npm run build -- --vscode",
     "vscode:debug": "npm run serve -- --vscode",
     "gpu:hud": "node bin/cdp-gpu-hud.mjs --attach=9222",
-    "probe": "node bin/cdp-gpu-probe.mjs --url=http://127.0.0.1:8000/",
-    "probe:watch": "node bin/cdp-gpu-probe.mjs --url=http://127.0.0.1:8000/ --samples=12 --interval=1000 --top=10",
+    "probe": "node bin/cdp-gpu-probe.mjs --url=http://127.0.0.1:$(node scripts/derived-port.mjs http)/",
+    "probe:watch": "node bin/cdp-gpu-probe.mjs --url=http://127.0.0.1:$(node scripts/derived-port.mjs http)/ --samples=12 --interval=1000 --top=10",
     "probe:hud": "node bin/cdp-gpu-probe.mjs hud --attach=9222 --top=10",
-    "probe:hud:launch": "node bin/cdp-gpu-probe.mjs hud --url=http://127.0.0.1:8000/ --top=10",
+    "probe:hud:launch": "node bin/cdp-gpu-probe.mjs hud --url=http://127.0.0.1:$(node scripts/derived-port.mjs http)/ --top=10",
     "test": "node test/parse.test.mjs && node test/lifecycle.test.mjs",
-    "lint": "eslint . --ignore-pattern 'dist'"
+    "lint": "eslint ."
   },
   "dependencies": {
     "chrome-launcher": "^1.2.1"
   },
   "devDependencies": {
-    "@graysonlang/esp": "^1.5.0",
+    "@graysonlang/esp": "^1.8.0",
     "@stylistic/eslint-plugin": "^5.10.0",
     "esbuild": "^0.28.0",
-    "eslint": "^9.39.4"
+    "eslint": "^10.0.0"
   },
   "engines": {
     "node": ">=22"

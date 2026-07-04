@@ -16,7 +16,7 @@ function getOptions(args, verbose, logger) {
     loader: {
       '.html': 'file',
     },
-    outdir: 'dist',
+    outdir: 'www',
     plugins: [
       pluginImp({ logger, verbose }),
     ],

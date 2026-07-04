@@ -1,5 +1,5 @@
 // This import+export keeps index.html in the bundle graph so esbuild copies it to
-// dist/ and doesn't tree-shake the reference away. (Same idiom as the esd boilerplate.)
+// www/ and doesn't tree-shake the reference away. (Same idiom as the esp-template project.)
 import index from './index.html';
 export function getFilePaths() {
   return { index };
