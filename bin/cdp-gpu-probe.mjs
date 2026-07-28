@@ -11,12 +11,7 @@
 
 import { writeFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
-import {
-  probeGpuMemory,
-  probeGpuInfo,
-  probeGpuHistograms,
-  runHud,
-} from '../src/index.mjs';
+import { probeGpuMemory, probeGpuInfo, probeGpuHistograms, runHud } from '../src/index.mjs';
 import { formatReport, formatSystemInfo, formatHistograms } from '../src/format.mjs';
 
 const COMMANDS = new Set(['memory', 'info', 'histograms', 'hud']);
@@ -111,10 +106,16 @@ const numeric = (key, fallback, rules = {}) => {
   }
   const parsed = Number(text);
   const { integer = false, min = -Infinity, max = Infinity } = rules;
-  if (!Number.isFinite(parsed) || (integer && !Number.isInteger(parsed)) || parsed < min || parsed > max) {
-    const range = Number.isFinite(min) || Number.isFinite(max)
-      ? ` between ${Number.isFinite(min) ? min : '-Infinity'} and ${Number.isFinite(max) ? max : 'Infinity'}`
-      : '';
+  if (
+    !Number.isFinite(parsed) ||
+    (integer && !Number.isInteger(parsed)) ||
+    parsed < min ||
+    parsed > max
+  ) {
+    const range =
+      Number.isFinite(min) || Number.isFinite(max)
+        ? ` between ${Number.isFinite(min) ? min : '-Infinity'} and ${Number.isFinite(max) ? max : 'Infinity'}`
+        : '';
     throw new Error(`--${key} must be a ${integer ? 'whole ' : ''}number${range}.`);
   }
   return parsed;
@@ -168,10 +169,17 @@ async function runHistograms() {
   const report = await probeGpuHistograms({
     ...commonOptions(),
     settleMs: numeric('settle', 1500, { integer: true, min: 0 }),
-    prefixes: args.has('prefixes') ? String(args.get('prefixes')).split(',').map(s => s.trim()).filter(Boolean) : undefined,
+    prefixes: args.has('prefixes')
+      ? String(args.get('prefixes'))
+          .split(',')
+          .map(s => s.trim())
+          .filter(Boolean)
+      : undefined,
   });
   await writeOut(report);
-  return args.has('json') ? JSON.stringify(report, null, 2) : formatHistograms(report, { label, all: args.has('all') });
+  return args.has('json')
+    ? JSON.stringify(report, null, 2)
+    : formatHistograms(report, { label, all: args.has('all') });
 }
 
 async function runHudCmd() {
@@ -180,8 +188,12 @@ async function runHudCmd() {
   const launchUrl = string('url') || (attaching ? undefined : DEFAULT_URL);
 
   if (!attaching) {
-    process.stderr.write(`  launch mode: starting a hidden headless Chrome at ${launchUrl} to probe its GPU memory.\n`);
-    process.stderr.write('  (you measure that off-screen page; the window that opens is the HUD dashboard, not the page itself.)\n');
+    process.stderr.write(
+      `  launch mode: starting a hidden headless Chrome at ${launchUrl} to probe its GPU memory.\n`,
+    );
+    process.stderr.write(
+      '  (you measure that off-screen page; the window that opens is the HUD dashboard, not the page itself.)\n',
+    );
   }
 
   const controller = new AbortController();
@@ -202,14 +214,24 @@ async function runHudCmd() {
       levelOfDetail: string('level') || 'detailed',
       topTextures: numeric('top', 0, { integer: true, min: 0 }),
       // Two-rate sampling: fast footprint + periodic detailed (both required to enable).
-      footprintIntervalMs: args.has('footprint-interval') ? numeric('footprint-interval', 250, { integer: true, min: 0 }) : null,
-      detailIntervalMs: args.has('detail-interval') ? numeric('detail-interval', 2000, { integer: true, min: 0 }) : null,
-      port: args.has('port') ? numeric('port', undefined, { integer: true, min: 0, max: 65535 }) : undefined,
+      footprintIntervalMs: args.has('footprint-interval')
+        ? numeric('footprint-interval', 250, { integer: true, min: 0 })
+        : null,
+      detailIntervalMs: args.has('detail-interval')
+        ? numeric('detail-interval', 2000, { integer: true, min: 0 })
+        : null,
+      port: args.has('port')
+        ? numeric('port', undefined, { integer: true, min: 0, max: 65535 })
+        : undefined,
       open: !args.has('no-open'),
       signal: controller.signal,
-      onWaiting: url => process.stderr.write(`  waiting for ${url} to respond — start your dev server (Ctrl-C to stop)\n`),
+      onWaiting: url =>
+        process.stderr.write(
+          `  waiting for ${url} to respond — start your dev server (Ctrl-C to stop)\n`,
+        ),
       onReady: ({ hudUrl, target, intervalMs }) => {
-        const what = target.mode === 'attached' ? `attached to ${target.url}` : `probing ${target.url}`;
+        const what =
+          target.mode === 'attached' ? `attached to ${target.url}` : `probing ${target.url}`;
         process.stderr.write(`  HUD:   ${hudUrl}\n`);
         process.stderr.write(`  ${what} every ${intervalMs}ms — Ctrl-C to stop\n`);
       },
@@ -227,7 +249,7 @@ const runners = { memory: runMemory, info: runInfo, histograms: runHistograms, h
 
 runners[command]()
   .then(output => console.log(output))
-  .catch((error) => {
+  .catch(error => {
     console.error(error.message);
     process.exitCode = 1;
   });

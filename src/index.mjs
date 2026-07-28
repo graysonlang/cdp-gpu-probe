@@ -36,7 +36,9 @@ async function ensureServerReachable(url, timeoutMs, { signal, onWaiting } = {})
     }
     await sleep(250);
   }
-  throw new Error(`Could not reach ${url}. Start the dev server first.\n${lastError?.message || 'request failed'}`);
+  throw new Error(
+    `Could not reach ${url}. Start the dev server first.\n${lastError?.message || 'request failed'}`,
+  );
 }
 
 async function reachabilityError(url, signal) {
@@ -240,7 +242,9 @@ export async function runHud(options = {}) {
     try {
       let infoClient = page;
       if (!attaching) {
-        browser = await CdpClient.connect(await getBrowserWebSocketUrl(browserPort, timeoutMs, host));
+        browser = await CdpClient.connect(
+          await getBrowserWebSocketUrl(browserPort, timeoutMs, host),
+        );
         infoClient = browser;
       }
       hud.broadcast('info', await captureSystemInfo(infoClient));
@@ -253,10 +257,23 @@ export async function runHud(options = {}) {
 
     // The interval loop is the transport-agnostic core; here we just pipe its
     // output to the HUD's SSE broadcast and let it abort on `signal` / stop().
-    samples = streamGpuSamples(page, { levelOfDetail, intervalMs, settleMs, topTextures, footprintIntervalMs, detailIntervalMs, includeRaw: true, signal }, {
-      onSample: sample => hud.broadcast('sample', sample),
-      onError: error => hud.broadcast('status', { message: `sample skipped: ${error.message}` }),
-    });
+    samples = streamGpuSamples(
+      page,
+      {
+        levelOfDetail,
+        intervalMs,
+        settleMs,
+        topTextures,
+        footprintIntervalMs,
+        detailIntervalMs,
+        includeRaw: true,
+        signal,
+      },
+      {
+        onSample: sample => hud.broadcast('sample', sample),
+        onError: error => hud.broadcast('status', { message: `sample skipped: ${error.message}` }),
+      },
+    );
 
     // Open the HUD page in an ISOLATED Chrome window (own profile -> own GPU process), so
     // the dashboard's own rendering isn't charged to the GPU process we're measuring.

@@ -1,6 +1,6 @@
 {
   "name": "@graysonlang/cdp-gpu-probe",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Report GPU info (WebGL/WebGPU textures and buffers) for a page over the Chrome DevTools Protocol.",
   "homepage": "https://github.com/graysonlang/cdp-gpu-probe#readme",
   "bugs": {
@@ -30,7 +30,7 @@
     "README.md"
   ],
   "scripts": {
-    "prepare": "node ./scripts/build.mjs --sync-launch || echo 'prepare: skipped launch.json sync (run npm run sync:launch)'",
+    "prepare": "node ./scripts/prepare.mjs",
     "ports": "node ./scripts/build.mjs --print-port",
     "sync:launch": "node ./scripts/build.mjs --sync-launch",
     "build": "node ./scripts/build.mjs --lint --minify",
@@ -45,16 +45,16 @@
     "probe:hud": "node bin/cdp-gpu-probe.mjs hud --attach=9222 --top=10",
     "probe:hud:launch": "node bin/cdp-gpu-probe.mjs hud --url=http://127.0.0.1:$(node scripts/derived-port.mjs http)/ --top=10",
     "test": "node test/parse.test.mjs && node test/lifecycle.test.mjs",
-    "lint": "eslint ."
+    "lint": "biome check .",
+    "lint:fix": "biome check --write ."
   },
   "dependencies": {
     "chrome-launcher": "^1.2.1"
   },
   "devDependencies": {
-    "@graysonlang/esp": "^1.8.0",
-    "@stylistic/eslint-plugin": "^5.10.0",
-    "esbuild": "^0.28.0",
-    "eslint": "^10.0.0"
+    "@biomejs/biome": "^2.5.0",
+    "@graysonlang/esp": "^2.1.0",
+    "esbuild": "^0.28.0"
   },
   "engines": {
     "node": ">=22"

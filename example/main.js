@@ -3,7 +3,7 @@
 import index from './index.html';
 export function getFilePaths() {
   return { index };
-};
+}
 
 // WebGL textures are 512² (1 MiB) — enough to chart, and the canvas draws one. WebGPU
 // uses 2048² (16 MiB): small incremental WebGPU writes get recycled below the noise in
@@ -101,7 +101,17 @@ function createWebglDemo(canvas, bitmap, unique = false) {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     if (unique) {
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, TEX_SIZE, TEX_SIZE, 0, gl.RGBA, gl.UNSIGNED_BYTE, makeNoise());
+      gl.texImage2D(
+        gl.TEXTURE_2D,
+        0,
+        gl.RGBA,
+        TEX_SIZE,
+        TEX_SIZE,
+        0,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        makeNoise(),
+      );
     } else {
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, bitmap);
     }
@@ -133,7 +143,9 @@ function createWebglDemo(canvas, bitmap, unique = false) {
       draw();
       gl.flush(); // push the deletes to the GPU process promptly
     },
-    get count() { return textures.length; },
+    get count() {
+      return textures.length;
+    },
   };
 }
 
@@ -165,10 +177,18 @@ async function createWebgpuDemo() {
           format: 'rgba8unorm',
           usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
         });
-        device.queue.writeTexture({ texture }, data, { bytesPerRow: GPU_TEX_SIZE * 4, rowsPerImage: GPU_TEX_SIZE }, { width: GPU_TEX_SIZE, height: GPU_TEX_SIZE });
+        device.queue.writeTexture(
+          { texture },
+          data,
+          { bytesPerRow: GPU_TEX_SIZE * 4, rowsPerImage: GPU_TEX_SIZE },
+          { width: GPU_TEX_SIZE, height: GPU_TEX_SIZE },
+        );
         textures.push(texture);
       }
-      const buffer = device.createBuffer({ size: GPU_TEX_BYTES, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST });
+      const buffer = device.createBuffer({
+        size: GPU_TEX_BYTES,
+        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+      });
       device.queue.writeBuffer(buffer, 0, makeNoise(GPU_TEX_BYTES));
       buffers.push(buffer);
     },
@@ -182,16 +202,20 @@ async function createWebgpuDemo() {
       // nothing else is running (otherwise "Free all" with the leak off does ~nothing).
       device.queue.submit([]);
     },
-    get count() { return textures.length; },
+    get count() {
+      return textures.length;
+    },
   };
 }
 
 function renderReadout(element, webgl, webgpu) {
   const lines = [];
   lines.push(`WebGL textures: ${webgl.count}  (≈ ${webgl.count} MiB at ${TEX_SIZE}²)`);
-  lines.push(webgpu.available
-    ? `WebGPU textures: ${webgpu.count}`
-    : `WebGPU: unavailable (${webgpu.reason})`);
+  lines.push(
+    webgpu.available
+      ? `WebGPU textures: ${webgpu.count}`
+      : `WebGPU: unavailable (${webgpu.reason})`,
+  );
   element.textContent = lines.join('\n');
 }
 
@@ -208,10 +232,11 @@ window.addEventListener('load', async () => {
 
   const refresh = () => renderReadout(readout, webgl, webgpu);
 
-  const bind = (id, action) => document.getElementById(id).addEventListener('click', () => {
-    action();
-    refresh();
-  });
+  const bind = (id, action) =>
+    document.getElementById(id).addEventListener('click', () => {
+      action();
+      refresh();
+    });
   bind('webgl-add', () => webgl.add());
   bind('webgl-free', () => webgl.free());
   bind('webgpu-add', () => webgpu.add?.());
@@ -228,7 +253,7 @@ window.addEventListener('load', async () => {
   // Load with ?leak to auto-start it (no clicks needed) for headless regression runs.
   let leakTimer = null;
   const leakButton = document.getElementById('leak');
-  const setLeak = (on) => {
+  const setLeak = on => {
     if (on && !leakTimer) {
       leakTimer = setInterval(() => {
         webgl.add(1);

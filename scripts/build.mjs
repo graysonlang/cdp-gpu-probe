@@ -17,9 +17,7 @@ function getOptions(args, verbose, logger) {
       '.html': 'file',
     },
     outdir: 'www',
-    plugins: [
-      pluginImp({ logger, verbose }),
-    ],
+    plugins: [pluginImp({ logger, verbose })],
     target: ['esnext'],
     ...args,
   };

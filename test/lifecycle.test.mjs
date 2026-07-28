@@ -32,7 +32,7 @@ class FakeWebSocket extends EventTarget {
   const client = new CdpClient(socket);
 
   let eventTotal = 0;
-  const off = client.on('Test.event', (params) => {
+  const off = client.on('Test.event', params => {
     eventTotal += params.value;
   });
   socket.emit({ method: 'Test.event', params: { value: 2 } });
@@ -105,4 +105,6 @@ class FakeTraceClient {
   assert.equal(client.handlers.size, 0, 'trace event handlers are removed after capture');
 }
 
-console.log('ok - CDP lifecycle rejects closed sends, unsubscribes handlers, and ends failed traces');
+console.log(
+  'ok - CDP lifecycle rejects closed sends, unsubscribes handlers, and ends failed traces',
+);

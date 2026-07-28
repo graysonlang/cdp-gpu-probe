@@ -27,7 +27,7 @@ export class CdpClient {
     this.closed = false;
     this.webSocket = webSocket;
 
-    webSocket.addEventListener('message', (event) => {
+    webSocket.addEventListener('message', event => {
       const message = JSON.parse(decodeMessage(event.data));
       if (message.id) {
         const callback = this.callbacks.get(message.id);

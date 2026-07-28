@@ -36,7 +36,7 @@ const SPECIAL_KEYS = Object.keys(SPECIAL);
 // puts IOSurface-backed textures), and dawn for WebGPU. These are Chrome's self-reported
 // breakdown, secondary to the footprint headline.
 const ROLLUP_LABELS = {
-  'gpu': 'GPU allocators (reported)',
+  gpu: 'GPU allocators (reported)',
   'gpu/gl/textures': 'Textures (GL)',
   'gpu/gl/buffers': 'Buffers (GL)',
   'gpu/gl/renderbuffers': 'Renderbuffers',
@@ -117,7 +117,7 @@ function drawSparkline(canvas, points, colors, scaleMax, peak, now, dots) {
   ctx.clearRect(0, 0, width, height);
   if (points.length < 2) return;
 
-  const top = scaleMax > 0 ? scaleMax : (Math.max(...points.map(p => p.v)) || 1);
+  const top = scaleMax > 0 ? scaleMax : Math.max(...points.map(p => p.v)) || 1;
   const pad = 4 * ratio;
   const t0 = now - WINDOW_MS;
   const x = t => pad + ((t - t0) / WINDOW_MS) * (width - pad * 2);
@@ -265,7 +265,11 @@ export function createHudRenderer(root = document, options = {}) {
     while (points.length > 1 && points[0].t < cutoff) points.shift();
     if (points.length > MAX_POINTS) points.splice(0, points.length - MAX_POINTS);
     if (value > (peakOf.get(key) ?? 0)) peakOf.set(key, value);
-    metrics.set(key, { value, step: prev === undefined ? null : value - prev, peak: peakOf.get(key) });
+    metrics.set(key, {
+      value,
+      step: prev === undefined ? null : value - prev,
+      peak: peakOf.get(key),
+    });
   }
 
   // --- charts (sparkline tiles for the ticked metrics) ---------------------------------
@@ -324,7 +328,7 @@ export function createHudRenderer(root = document, options = {}) {
       els.peak.style.color = bucketColor(peak).stroke;
       els.root.className = 'tile';
       els.root.style.borderLeftColor = bucket.stroke;
-      const top = SPECIAL[key] ? (peak || 1) : rollupTop;
+      const top = SPECIAL[key] ? peak || 1 : rollupTop;
       drawSparkline(els.canvas, points, bucket, top, peak, now, !SPECIAL[key]);
     }
   }
@@ -353,7 +357,7 @@ export function createHudRenderer(root = document, options = {}) {
   }
 
   // One delegated handler for every row's chart checkbox.
-  root.addEventListener('change', (event) => {
+  root.addEventListener('change', event => {
     const box = event.target;
     if (box.matches?.('input[type="checkbox"][data-key]')) setCharted(box.dataset.key, box.checked);
   });
@@ -378,11 +382,7 @@ export function createHudRenderer(root = document, options = {}) {
     valueCell.style.color = bucketColor(m.value).stroke;
     const peakCell = cell('peak', humanBytes(m.peak));
     peakCell.style.color = bucketColor(m.peak).stroke;
-    return [
-      valueCell,
-      cell(`delta ${trend}`, stepLabel(m.step)),
-      peakCell,
-    ];
+    return [valueCell, cell(`delta ${trend}`, stepLabel(m.step)), peakCell];
   }
 
   function renderFootprints() {
@@ -392,7 +392,11 @@ export function createHudRenderer(root = document, options = {}) {
     for (const key of SPECIAL_KEYS) {
       if (!metrics.has(key)) continue;
       const tr = document.createElement('tr');
-      tr.append(checkboxCell(key), cell('friendly', SPECIAL[key].label, SPECIAL[key].label), ...valueCells(metrics.get(key)));
+      tr.append(
+        checkboxCell(key),
+        cell('friendly', SPECIAL[key].label, SPECIAL[key].label),
+        ...valueCells(metrics.get(key)),
+      );
       tbody.appendChild(tr);
     }
   }
@@ -400,10 +404,14 @@ export function createHudRenderer(root = document, options = {}) {
   function sortKey(key) {
     const m = metrics.get(key);
     switch (sortCol) {
-      case 'friendly': return friendlyName(key) || key;
-      case 'delta': return m.step ?? 0;
-      case 'peak': return m.peak;
-      default: return m.value;
+      case 'friendly':
+        return friendlyName(key) || key;
+      case 'delta':
+        return m.step ?? 0;
+      case 'peak':
+        return m.peak;
+      default:
+        return m.value;
     }
   }
 
@@ -413,7 +421,13 @@ export function createHudRenderer(root = document, options = {}) {
     tbody.replaceChildren();
     if (!rollupKeys.length) {
       const tr = document.createElement('tr');
-      tr.append(cell('chart', ''), cell('friendly', 'no rollups reported'), cell('num', ''), cell('delta flat', ''), cell('peak', ''));
+      tr.append(
+        cell('chart', ''),
+        cell('friendly', 'no rollups reported'),
+        cell('num', ''),
+        cell('delta flat', ''),
+        cell('peak', ''),
+      );
       tbody.appendChild(tr);
     } else {
       const sorted = [...rollupKeys].sort((a, b) => {
@@ -426,7 +440,11 @@ export function createHudRenderer(root = document, options = {}) {
         const tr = document.createElement('tr');
         // One name column: the friendly label (or the node when there's none), with the
         // full node path on hover so the narrow window doesn't need a second column.
-        tr.append(checkboxCell(key), cell('friendly', friendlyName(key) || key, key), ...valueCells(metrics.get(key)));
+        tr.append(
+          checkboxCell(key),
+          cell('friendly', friendlyName(key) || key, key),
+          ...valueCells(metrics.get(key)),
+        );
         tbody.appendChild(tr);
       }
     }
@@ -502,8 +520,11 @@ export function createHudRenderer(root = document, options = {}) {
   function statsJson() {
     const s = lastSample;
     const entry = (key, value) => ({ value, peak: peakOf.get(key) ?? value });
-    const footprints = { [SPECIAL.footprint.label]: entry('footprint', s.gpuProcessFootprintBytes || 0) };
-    if (s.rendererFootprintBytes) footprints[SPECIAL.renderer.label] = entry('renderer', s.rendererFootprintBytes);
+    const footprints = {
+      [SPECIAL.footprint.label]: entry('footprint', s.gpuProcessFootprintBytes || 0),
+    };
+    if (s.rendererFootprintBytes)
+      footprints[SPECIAL.renderer.label] = entry('renderer', s.rendererFootprintBytes);
     const rollups = {};
     for (const [key, value] of Object.entries(s.rollups || {})) rollups[key] = entry(key, value);
     return JSON.stringify({ footprints, rollups }, null, 2);

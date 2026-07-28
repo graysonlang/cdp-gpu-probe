@@ -58,7 +58,7 @@ export async function startHudServer({ port } = {}) {
       res.writeHead(200, {
         'content-type': 'text/event-stream',
         'cache-control': 'no-cache, no-transform',
-        'connection': 'keep-alive',
+        connection: 'keep-alive',
       });
       res.write(': connected\n\n');
       for (const [event, data] of retained) res.write(frameOf(event, data));

@@ -4,7 +4,9 @@ import { collectGpuDumps, indexProcessNames, summarizeDump } from '../src/memory
 
 // hex byte sizes
 const MiB = 0x100000;
-const size = mib => ({ attrs: { size: { type: 'scalar', units: 'bytes', value: (mib * MiB).toString(16) } } });
+const size = mib => ({
+  attrs: { size: { type: 'scalar', units: 'bytes', value: (mib * MiB).toString(16) } },
+});
 
 // Two processes share one global dump id. The renderer reports the texture as a
 // non-owning client node (effective size 0); the GPU process owns it. We must
@@ -15,32 +17,53 @@ const events = [
   { ph: 'M', name: 'process_name', pid: 300, args: { name: 'GPU Process' } },
   // Renderer-side client mirror — should be ignored.
   {
-    ph: 'v', id: 'dump-1', pid: 200, ts: 1000,
-    args: { dumps: { allocators: { 'gpu/gl/textures/client_0/texture_9': { attrs: { size: { value: '0' } } } } } },
+    ph: 'v',
+    id: 'dump-1',
+    pid: 200,
+    ts: 1000,
+    args: {
+      dumps: {
+        allocators: { 'gpu/gl/textures/client_0/texture_9': { attrs: { size: { value: '0' } } } },
+      },
+    },
   },
   // GPU process, dump 1.
   {
-    ph: 'v', id: 'dump-1', pid: 300, ts: 1000,
-    args: { dumps: { allocators: {
-      'gpu': size(50),
-      'gpu/gl': size(40),
-      'gpu/gl/textures': size(32),
-      'gpu/gl/buffers': size(8),
-      'gpu/gl/textures/share_group_0/texture_1': size(24),
-      'gpu/gl/textures/share_group_0/texture_2': size(8),
-    } } },
+    ph: 'v',
+    id: 'dump-1',
+    pid: 300,
+    ts: 1000,
+    args: {
+      dumps: {
+        allocators: {
+          gpu: size(50),
+          'gpu/gl': size(40),
+          'gpu/gl/textures': size(32),
+          'gpu/gl/buffers': size(8),
+          'gpu/gl/textures/share_group_0/texture_1': size(24),
+          'gpu/gl/textures/share_group_0/texture_2': size(8),
+        },
+      },
+    },
   },
   // GPU process, dump 2 — textures grew (a leak signal).
   {
-    ph: 'v', id: 'dump-2', pid: 300, ts: 2000,
-    args: { dumps: { allocators: {
-      'gpu': size(74),
-      'gpu/gl/textures': size(64),
-      'gpu/gl/buffers': size(8),
-      'gpu/gl/textures/share_group_0/texture_1': size(24),
-      'gpu/gl/textures/share_group_0/texture_2': size(8),
-      'gpu/gl/textures/share_group_0/texture_3': size(32),
-    } } },
+    ph: 'v',
+    id: 'dump-2',
+    pid: 300,
+    ts: 2000,
+    args: {
+      dumps: {
+        allocators: {
+          gpu: size(74),
+          'gpu/gl/textures': size(64),
+          'gpu/gl/buffers': size(8),
+          'gpu/gl/textures/share_group_0/texture_1': size(24),
+          'gpu/gl/textures/share_group_0/texture_2': size(8),
+          'gpu/gl/textures/share_group_0/texture_3': size(32),
+        },
+      },
+    },
   },
 ];
 
@@ -85,4 +108,6 @@ assert.equal(metal.topTextures[1].name, 'dawn texture_0xabc');
 // delta the report would show
 assert.equal(second.gpuTotalBytes - first.gpuTotalBytes, 24 * MiB, 'growth detected');
 
-console.log('ok - trace parser picks GPU process, ignores client mirror, ranks textures, detects growth');
+console.log(
+  'ok - trace parser picks GPU process, ignores client mirror, ranks textures, detects growth',
+);

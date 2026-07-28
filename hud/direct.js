@@ -33,18 +33,22 @@ function consoleSink() {
   const line = (key, value) => {
     const last = prev.get(key);
     prev.set(key, value);
-    const d = last === undefined
-      ? ''
-      : value > last
-        ? ` ▲${humanBytes(value - last)}`
-        : value < last ? ` ▼${humanBytes(last - value)}` : ' ·';
+    const d =
+      last === undefined
+        ? ''
+        : value > last
+          ? ` ▲${humanBytes(value - last)}`
+          : value < last
+            ? ` ▼${humanBytes(last - value)}`
+            : ' ·';
     return `${key} ${humanBytes(value)}${d}`;
   };
   return {
     renderTarget: t => console.log(`[gpu] target: ${[t.title, t.url].filter(Boolean).join(' · ')}`),
-    renderInfo: info => console.log(`[gpu] ${[info.modelName, info.gl?.renderer].filter(Boolean).join(' · ')}`),
+    renderInfo: info =>
+      console.log(`[gpu] ${[info.modelName, info.gl?.renderer].filter(Boolean).join(' · ')}`),
     setLive: () => {},
-    renderSample: (sample) => {
+    renderSample: sample => {
       const parts = Object.entries(sample.rollups || {})
         .filter(([k]) => k !== 'gpu/gl')
         .sort((a, b) => b[1] - a[1])
@@ -150,10 +154,23 @@ export async function startDirectHud(options = {}) {
       // identity is a nicety; the HUD still works on samples alone.
     }
 
-    samples = streamGpuSamples(client, { levelOfDetail, intervalMs, settleMs, topTextures, footprintIntervalMs, detailIntervalMs, includeRaw: true, signal }, {
-      onSample: sample => hud.renderSample(sample),
-      onError: error => hud.setStatus(`sample skipped: ${error.message}`),
-    });
+    samples = streamGpuSamples(
+      client,
+      {
+        levelOfDetail,
+        intervalMs,
+        settleMs,
+        topTextures,
+        footprintIntervalMs,
+        detailIntervalMs,
+        includeRaw: true,
+        signal,
+      },
+      {
+        onSample: sample => hud.renderSample(sample),
+        onError: error => hud.setStatus(`sample skipped: ${error.message}`),
+      },
+    );
 
     const onDrop = () => {
       if (stopped) return;
@@ -190,11 +207,15 @@ export async function startDirectHud(options = {}) {
 
   globalThis.addEventListener?.('resize', () => hud.redraw());
   if (signal) {
-    signal.addEventListener('abort', () => {
-      stopped = true;
-      samples?.stop();
-      client?.close();
-    }, { once: true });
+    signal.addEventListener(
+      'abort',
+      () => {
+        stopped = true;
+        samples?.stop();
+        client?.close();
+      },
+      { once: true },
+    );
   }
 
   return {

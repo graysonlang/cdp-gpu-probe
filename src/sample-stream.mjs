@@ -36,7 +36,7 @@ export function streamGpuSamples(client, options = {}, handlers = {}) {
 
   let stopped = false;
   let resolveDone;
-  const done = new Promise((resolve) => {
+  const done = new Promise(resolve => {
     resolveDone = resolve;
   });
 
@@ -49,7 +49,7 @@ export function streamGpuSamples(client, options = {}, handlers = {}) {
     let firstSample = true;
     let lastDetailAt = 0; // 0 -> the first tick is a detailed one (so rollups appear at once)
     while (!stopped) {
-      const detailed = twoRate ? (Date.now() - lastDetailAt >= detailIntervalMs) : true;
+      const detailed = twoRate ? Date.now() - lastDetailAt >= detailIntervalMs : true;
       const level = twoRate ? (detailed ? detailLevel : 'background') : levelOfDetail;
       try {
         const report = await captureGpuMemory(client, {

@@ -19,7 +19,12 @@ import http from 'node:http';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { getBrowserWebSocketUrl, launchAppChrome, openInIsolatedChrome, parseDebugTarget } from '../src/index.mjs';
+import {
+  getBrowserWebSocketUrl,
+  launchAppChrome,
+  openInIsolatedChrome,
+  parseDebugTarget,
+} from '../src/index.mjs';
 
 const PKG_ROOT = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
 const SERVE_DIRS = new Set(['hud', 'src']); // the direct HUD's native-ESM module graph
@@ -62,7 +67,8 @@ const { host, port: appPort } = parseDebugTarget(args.get('attach') || '9222');
 const hudPort = Number(args.get('hud-port') || 9292);
 const wantText = args.has('text');
 const chromeOverride = args.get('chrome') ? String(args.get('chrome')) : undefined;
-const launchAppUrl = typeof args.get('launch-app') === 'string' ? String(args.get('launch-app')) : undefined;
+const launchAppUrl =
+  typeof args.get('launch-app') === 'string' ? String(args.get('launch-app')) : undefined;
 
 const server = http.createServer(async (req, res) => {
   const urlPath = (req.url || '/').split('?')[0];
@@ -72,7 +78,8 @@ const server = http.createServer(async (req, res) => {
   if (urlPath === '/ws') {
     try {
       const ws = await getBrowserWebSocketUrl(appPort, 1500, host);
-      res.writeHead(200, { 'content-type': CONTENT_TYPES['.json'] })
+      res
+        .writeHead(200, { 'content-type': CONTENT_TYPES['.json'] })
         .end(JSON.stringify({ ws, label: `${host}:${appPort}` }));
     } catch {
       res.writeHead(503).end('app debug endpoint not reachable');
@@ -90,7 +97,11 @@ const server = http.createServer(async (req, res) => {
   }
   try {
     const body = await readFile(filePath);
-    res.writeHead(200, { 'content-type': CONTENT_TYPES[path.extname(filePath)] || 'application/octet-stream' }).end(body);
+    res
+      .writeHead(200, {
+        'content-type': CONTENT_TYPES[path.extname(filePath)] || 'application/octet-stream',
+      })
+      .end(body);
   } catch {
     res.writeHead(404).end('Not found');
   }
@@ -111,7 +122,8 @@ const appWindow = launchAppUrl
       allowOrigin: `http://127.0.0.1:${hudPort}`,
     })
   : null;
-if (appWindow) process.stdout.write(`App Chrome launched → ${launchAppUrl} (debug port ${appPort})\n`);
+if (appWindow)
+  process.stdout.write(`App Chrome launched → ${launchAppUrl} (debug port ${appPort})\n`);
 
 // The page defaults to discovering its ws via the same-origin /ws endpoint (below), so no
 // ?discover= is needed; it re-resolves there on disconnect for auto re-attach.
@@ -128,9 +140,13 @@ const hudWindow = openInIsolatedChrome(hudUrl, { chrome: chromeOverride });
 
 process.stdout.write(`GPU HUD window opened (isolated Chrome) → ${hudUrl}\n`);
 if (!appWindow) {
-  process.stdout.write(`Allow it: start the app's Chrome with --remote-allow-origins=http://127.0.0.1:${hudPort}\n`);
+  process.stdout.write(
+    `Allow it: start the app's Chrome with --remote-allow-origins=http://127.0.0.1:${hudPort}\n`,
+  );
 }
-process.stdout.write(`Measuring Chrome @ ${host}:${appPort} — close the HUD window (or Ctrl-C) to stop.\n`);
+process.stdout.write(
+  `Measuring Chrome @ ${host}:${appPort} — close the HUD window (or Ctrl-C) to stop.\n`,
+);
 
 let shuttingDown = false;
 async function shutdown(code = 0) {

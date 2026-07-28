@@ -55,9 +55,11 @@ function parseBytes(value) {
 // metric (and jetsam's phys_footprint class); resident_set is the fallback elsewhere.
 function parseFootprint(totals) {
   if (!totals) return 0;
-  return parseBytes(totals.private_footprint_bytes)
-    || parseBytes(totals.resident_set_bytes)
-    || (Number(totals.resident_set_kb) || 0) * 1024;
+  return (
+    parseBytes(totals.private_footprint_bytes) ||
+    parseBytes(totals.resident_set_bytes) ||
+    (Number(totals.resident_set_kb) || 0) * 1024
+  );
 }
 
 // Build pid -> friendly process name from metadata events.
@@ -95,7 +97,9 @@ function collectGpuDumps(events, processNames) {
     const id = event.id ?? `${event.pid}:${event.ts}`;
     if (!dumps.has(id)) {
       dumps.set(id, {
-        id, ts: event.ts, pid: event.pid,
+        id,
+        ts: event.ts,
+        pid: event.pid,
         process: processNames.get(event.pid) || `pid ${event.pid}`,
         allocators: {},
         processTotals: event.args?.dumps?.process_totals || null,
@@ -133,7 +137,8 @@ function collectFootprints(events, processNames) {
 //                      the per-image node — its /element_N children are the same bytes, so
 //                      we match the mailbox and skip them to avoid double-listing)
 //   WebGPU / Dawn:     gpu/dawn/<device>/texture_<addr>
-const RESOURCE_NODE = /^(?:gpu\/gl\/textures\/.+\/texture_\d+|gpu\/shared_images\/[^/]+\/mailbox_[^/]+|gpu\/dawn\/[^/]+\/texture_[^/]+)$/;
+const RESOURCE_NODE =
+  /^(?:gpu\/gl\/textures\/.+\/texture_\d+|gpu\/shared_images\/[^/]+\/mailbox_[^/]+|gpu\/dawn\/[^/]+\/texture_[^/]+)$/;
 
 // A readable label for a resource node — the raw paths carry long mailbox GUIDs / pointers.
 function resourceLabel(name) {
@@ -173,7 +178,7 @@ function summarizeDump(dump, topTextures) {
     // (GPU/Metal allocations included). The rollups below are Chrome's self-reported
     // allocator breakdown — useful, but incomplete for WebGPU/Dawn on Metal.
     gpuProcessFootprintBytes: parseFootprint(dump.processTotals),
-    gpuTotalBytes: rollups['gpu'] ?? 0,
+    gpuTotalBytes: rollups.gpu ?? 0,
     textureBytes: rollups['gpu/gl/textures'] ?? 0,
     bufferBytes: rollups['gpu/gl/buffers'] ?? 0,
     rollups,
@@ -195,17 +200,19 @@ export async function captureGpuMemory(client, options = {}) {
 
   const events = [];
   let tracingComplete;
-  const completed = new Promise((resolve) => {
+  const completed = new Promise(resolve => {
     tracingComplete = resolve;
   });
   let tracingActive = false;
   let tracingEnded = false;
 
-  const offDataCollected = client.on('Tracing.dataCollected', (params) => {
-    if (Array.isArray(params.value)) events.push(...params.value);
-  }) || (() => {});
+  const offDataCollected =
+    client.on('Tracing.dataCollected', params => {
+      if (Array.isArray(params.value)) events.push(...params.value);
+    }) || (() => {});
   const dumpGuids = [];
-  const offTracingComplete = client.on('Tracing.tracingComplete', () => tracingComplete()) || (() => {});
+  const offTracingComplete =
+    client.on('Tracing.tracingComplete', () => tracingComplete()) || (() => {});
 
   async function stopTracing({ quiet } = {}) {
     if (!tracingActive || tracingEnded) return;
@@ -239,9 +246,14 @@ export async function captureGpuMemory(client, options = {}) {
 
     for (let i = 0; i < Math.max(1, samples); i++) {
       if (i > 0 && intervalMs > 0) await sleep(intervalMs);
-      const result = await client.send('Tracing.requestMemoryDump', { deterministic: true, levelOfDetail });
+      const result = await client.send('Tracing.requestMemoryDump', {
+        deterministic: true,
+        levelOfDetail,
+      });
       if (!result.success) {
-        throw new Error('Chrome reported the memory dump failed. Try --level=light, or give the page longer to settle.');
+        throw new Error(
+          'Chrome reported the memory dump failed. Try --level=light, or give the page longer to settle.',
+        );
       }
       dumpGuids.push(result.dumpGuid);
       if (onSample) onSample(i + 1);
@@ -252,14 +264,16 @@ export async function captureGpuMemory(client, options = {}) {
     const processNames = indexProcessNames(events);
     const dumps = collectGpuDumps(events, processNames);
     if (dumps.length === 0) {
-      throw new Error('No GPU memory dumps were found in the trace. The page may not have created a GPU context yet.');
+      throw new Error(
+        'No GPU memory dumps were found in the trace. The page may not have created a GPU context yet.',
+      );
     }
     const footprints = collectFootprints(events, processNames);
 
     return {
       levelOfDetail,
       requestedSamples: dumpGuids.length,
-      samples: dumps.map((dump) => {
+      samples: dumps.map(dump => {
         const sample = summarizeDump(dump, topTextures);
         // process_totals arrives in a separate event from allocators (same dump id), so
         // pull both footprints from the cross-process scan rather than the allocators dump.

@@ -45,16 +45,16 @@ export function formatReport(report, options = {}) {
     const delta = sample.gpuProcessFootprintBytes - base.gpuProcessFootprintBytes;
     const deltaText = index === 0 ? '-' : `${delta >= 0 ? '+' : ''}${humanBytes(delta)}`;
     lines.push(
-      pad(index + 1, 4)
-      + padStart(humanBytes(sample.gpuProcessFootprintBytes), 14)
-      + padStart(deltaText, 14)
-      + padStart(humanBytes(sample.gpuTotalBytes), 14)
-      + padStart(humanBytes(sample.textureBytes), 12),
+      pad(index + 1, 4) +
+        padStart(humanBytes(sample.gpuProcessFootprintBytes), 14) +
+        padStart(deltaText, 14) +
+        padStart(humanBytes(sample.gpuTotalBytes), 14) +
+        padStart(humanBytes(sample.textureBytes), 12),
     );
   });
   lines.push('');
   lines.push('footprint = GPU process private_footprint (authoritative, incl. GPU/Metal memory);');
-  lines.push('gpu alloc = Chrome\'s self-reported allocator total (a partial breakdown).');
+  lines.push("gpu alloc = Chrome's self-reported allocator total (a partial breakdown).");
 
   const last = samples[samples.length - 1];
   if (last.rendererFootprintBytes) {
@@ -96,19 +96,24 @@ export function formatSystemInfo(info, options = {}) {
 
   if (label) lines.push(`label:    ${label}`);
   lines.push('GPU');
-  if (info.modelName) lines.push(`  model:    ${info.modelName}${info.modelVersion ? ` ${info.modelVersion}` : ''}`);
+  if (info.modelName)
+    lines.push(`  model:    ${info.modelName}${info.modelVersion ? ` ${info.modelVersion}` : ''}`);
   if (info.devices.length === 0) lines.push('  device:   (none reported)');
   for (const device of info.devices) {
     const driver = [device.driverVendor, device.driverVersion].filter(Boolean).join(' ');
     const active = device.active ? '  [active]' : '';
-    lines.push(`  device:   ${device.vendor || '?'} ${device.device || ''}${driver ? `  (driver ${driver})` : ''}${active}`);
+    lines.push(
+      `  device:   ${device.vendor || '?'} ${device.device || ''}${driver ? `  (driver ${driver})` : ''}${active}`,
+    );
   }
-  if (info.gl.renderer) lines.push(`  gl:       ${info.gl.renderer}${info.gl.version ? ` — ${info.gl.version}` : ''}`);
+  if (info.gl.renderer)
+    lines.push(`  gl:       ${info.gl.renderer}${info.gl.version ? ` — ${info.gl.version}` : ''}`);
   const backend = Object.entries(info.backend)
     .filter(([, value]) => value !== null && value !== false)
     .map(([key, value]) => `${key}=${value}`);
   if (backend.length) lines.push(`  backend:  ${backend.join('  ')}`);
-  if (info.gpuProcess) lines.push(`  process:  ${info.gpuProcess.type} (cpuTime ${info.gpuProcess.cpuTime ?? '?'})`);
+  if (info.gpuProcess)
+    lines.push(`  process:  ${info.gpuProcess.type} (cpuTime ${info.gpuProcess.cpuTime ?? '?'})`);
 
   const features = Object.entries(info.featureStatus).sort(([a], [b]) => a.localeCompare(b));
   if (features.length) {
@@ -131,8 +136,10 @@ export function formatSystemInfo(info, options = {}) {
   if (info.video.decoding.length || info.video.encoding.length) {
     lines.push('');
     lines.push('hardware video:');
-    if (info.video.decoding.length) lines.push(`  decode:   ${info.video.decoding.map(describeVideoProfile).join(', ')}`);
-    if (info.video.encoding.length) lines.push(`  encode:   ${info.video.encoding.map(describeVideoProfile).join(', ')}`);
+    if (info.video.decoding.length)
+      lines.push(`  decode:   ${info.video.decoding.map(describeVideoProfile).join(', ')}`);
+    if (info.video.encoding.length)
+      lines.push(`  encode:   ${info.video.encoding.map(describeVideoProfile).join(', ')}`);
   }
 
   return lines.join('\n');
@@ -144,20 +151,30 @@ export function formatHistograms(result, options = {}) {
   const lines = [];
 
   if (label) lines.push(`label:    ${label}`);
-  lines.push(`mode:     ${result.delta ? 'delta (around page lifetime)' : 'absolute (since launch)'}`);
+  lines.push(
+    `mode:     ${result.delta ? 'delta (around page lifetime)' : 'absolute (since launch)'}`,
+  );
   lines.push(`matched:  ${result.all.length} histograms`);
   lines.push('');
 
   const rows = all ? result.all : result.health;
   if (rows.length === 0) {
-    lines.push(all ? 'no matching histograms recorded.' : 'no GPU health histograms recorded (no losses/crashes/errors).');
+    lines.push(
+      all
+        ? 'no matching histograms recorded.'
+        : 'no GPU health histograms recorded (no losses/crashes/errors).',
+    );
     return lines.join('\n');
   }
 
-  lines.push(all ? 'all matched histograms:' : 'health (context loss / crashes / errors / lifetime):');
+  lines.push(
+    all ? 'all matched histograms:' : 'health (context loss / crashes / errors / lifetime):',
+  );
   const width = Math.max(...rows.map(row => row.name.length));
   for (const row of rows) {
-    lines.push(`  ${pad(row.name, width + 2)}${padStart(`count ${row.count}`, 12)}${padStart(`sum ${row.sum}`, 14)}`);
+    lines.push(
+      `  ${pad(row.name, width + 2)}${padStart(`count ${row.count}`, 12)}${padStart(`sum ${row.sum}`, 14)}`,
+    );
   }
   if (!all && result.all.length > result.health.length) {
     lines.push('');

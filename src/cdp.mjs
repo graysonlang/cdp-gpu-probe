@@ -39,7 +39,9 @@ export function findChromePath(explicit) {
   try {
     return getChromePath();
   } catch {
-    throw new Error('Could not find Chrome. Set CDP_GPU_PROBE_CHROME or pass --chrome=/path/to/chrome.');
+    throw new Error(
+      'Could not find Chrome. Set CDP_GPU_PROBE_CHROME or pass --chrome=/path/to/chrome.',
+    );
   }
 }
 
@@ -68,8 +70,8 @@ export async function launchChrome(options = {}) {
   const chromePath = findChromePath(chromeOverride);
   const remotePort = await getFreePort();
   const ephemeralProfile = !userDataDirOverride;
-  const userDataDir = userDataDirOverride
-    || path.join(os.tmpdir(), `cdp-gpu-probe-${process.pid}-${Date.now()}`);
+  const userDataDir =
+    userDataDirOverride || path.join(os.tmpdir(), `cdp-gpu-probe-${process.pid}-${Date.now()}`);
   const chromeArgs = [
     `--remote-debugging-port=${remotePort}`,
     `--user-data-dir=${userDataDir}`,
@@ -116,7 +118,10 @@ export async function getBrowserWebSocketUrl(remotePort, timeoutMs = 20_000, hos
 // Parse a --attach value into { host, port }. Accepts "9222", "host:9222", or a
 // full "http://host:9222" — the forms a user is likely to paste.
 export function parseDebugTarget(attach) {
-  const cleaned = String(attach).trim().replace(/^https?:\/\//, '').replace(/\/+$/, '');
+  const cleaned = String(attach)
+    .trim()
+    .replace(/^https?:\/\//, '')
+    .replace(/\/+$/, '');
   const match = cleaned.match(/^(?:(.+):)?(\d{2,5})$/);
   if (!match) {
     throw new Error(`Invalid --attach value "${attach}". Use a port (e.g. 9222) or host:port.`);
@@ -140,9 +145,9 @@ export async function listPageTargets(host, port, timeoutMs = 20_000) {
     await sleep(150);
   }
   throw new Error(
-    `Could not reach a Chrome remote-debugging endpoint at ${host}:${port}. `
-    + `Launch Chrome with --remote-debugging-port=${port} (and a dedicated --user-data-dir).\n`
-    + (lastError?.message || 'request failed'),
+    `Could not reach a Chrome remote-debugging endpoint at ${host}:${port}. ` +
+      `Launch Chrome with --remote-debugging-port=${port} (and a dedicated --user-data-dir).\n` +
+      (lastError?.message || 'request failed'),
   );
 }
 
@@ -158,11 +163,16 @@ export function selectPageTarget(targets, matcher) {
   }
   if (!matcher) {
     if (targets.length === 1) return targets[0];
-    throw new Error(`Multiple tabs are open; pass --target=<substring of title or url>:\n${describe(targets)}`);
+    throw new Error(
+      `Multiple tabs are open; pass --target=<substring of title or url>:\n${describe(targets)}`,
+    );
   }
   const needle = String(matcher).toLowerCase();
-  const matches = targets.filter(t =>
-    (t.title || '').toLowerCase().includes(needle) || (t.url || '').toLowerCase().includes(needle));
+  const matches = targets.filter(
+    t =>
+      (t.title || '').toLowerCase().includes(needle) ||
+      (t.url || '').toLowerCase().includes(needle),
+  );
   if (matches.length === 0) {
     throw new Error(`No tab matched --target="${matcher}". Open tabs:\n${describe(targets)}`);
   }
@@ -193,8 +203,8 @@ export { CdpClient } from './cdp-client.mjs';
 // spawned launcher doesn't keep the Node process alive.
 export function openInBrowser(url) {
   const platform = process.platform;
-  const [command, args]
-    = platform === 'darwin'
+  const [command, args] =
+    platform === 'darwin'
       ? ['open', [url]]
       : platform === 'win32'
         ? ['cmd', ['/c', 'start', '', url]]
@@ -219,18 +229,22 @@ export function openInIsolatedChrome(url, options = {}) {
   const { chrome: chromeOverride, windowSize = '480,760' } = options;
   const chromePath = findChromePath(chromeOverride);
   const userDataDir = path.join(os.tmpdir(), `cdp-gpu-hud-${process.pid}-${Date.now()}`);
-  const child = spawn(chromePath, [
-    '--new-window',
-    `--user-data-dir=${userDataDir}`,
-    `--window-size=${windowSize}`,
-    '--no-first-run',
-    '--no-default-browser-check',
-    '--disable-sync',
-    '--disable-background-networking',
-    '--disable-component-update',
-    '--disable-default-apps',
-    String(url), // spawn args must be strings; callers may pass a URL object
-  ], { stdio: 'ignore' });
+  const child = spawn(
+    chromePath,
+    [
+      '--new-window',
+      `--user-data-dir=${userDataDir}`,
+      `--window-size=${windowSize}`,
+      '--no-first-run',
+      '--no-default-browser-check',
+      '--disable-sync',
+      '--disable-background-networking',
+      '--disable-component-update',
+      '--disable-default-apps',
+      String(url), // spawn args must be strings; callers may pass a URL object
+    ],
+    { stdio: 'ignore' },
+  );
   child.on('error', () => {}); // keep an unhandled 'error' from throwing; callers may add their own
 
   let disposed = false;
@@ -243,7 +257,9 @@ export function openInIsolatedChrome(url, options = {}) {
       // already gone
     }
     await sleep(50);
-    await rm(userDataDir, { force: true, recursive: true, maxRetries: 5, retryDelay: 100 }).catch(() => {});
+    await rm(userDataDir, { force: true, recursive: true, maxRetries: 5, retryDelay: 100 }).catch(
+      () => {},
+    );
   }
 
   return { process: child, userDataDir, dispose };
@@ -269,8 +285,7 @@ export function launchAppChrome(url, options = {}) {
   const chromePath = findChromePath(chromeOverride);
   // Hash the URL so distinct apps get distinct stable profiles without unwieldy dir names.
   const profileKey = createHash('sha1').update(String(url)).digest('hex').slice(0, 12);
-  const userDataDir = userDataDirOverride
-    || path.join(os.tmpdir(), `cdp-gpu-app-${profileKey}`);
+  const userDataDir = userDataDirOverride || path.join(os.tmpdir(), `cdp-gpu-app-${profileKey}`);
   const chromeArgs = [
     `--remote-debugging-port=${port}`,
     `--user-data-dir=${userDataDir}`,
